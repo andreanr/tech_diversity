@@ -1,4 +1,4 @@
 joblib==0.13.0
 pandas==0.21.0
-PyYAML==3.12
+pyyaml==4.2b1
 requests==2.20.0
