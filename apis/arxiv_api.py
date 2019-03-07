@@ -1,3 +1,4 @@
+import time
 import pandas as pd
 import requests
 import yaml
@@ -9,9 +10,9 @@ SCHEMA = ['it','name','author_name', 'author_middle_name', 'author_surname',
           'arxiv_id',  'published', 'title', 'keyword']
 
 
-def create_empty_csv(keyword):
+def create_empty_csv():
     arxiv_df = pd.DataFrame(columns=SCHEMA)
-    arxiv_df.to_csv('data/arxiv_{}_authors.csv'.format(keyword), index=False)
+    arxiv_df.to_csv('data/arxiv_authors.csv', index=False)
 
 
 def batch_queries(keyword, max=10000, by=100):
@@ -26,11 +27,17 @@ def retry_get(complete_api_url):
     r = None
     for x in range(3):
         try:
+            time.sleep(0.01)
             r = requests.get(complete_api_url, stream=True)
+            print(r.raise_for_status())
+            return r
             break
         except requests.ConnectionError as e:
             print(e)
             #print('Connection Error, Retrying in 2 seconds...')
+            time.sleep(5)
+        except requests.HTTPError as h:
+            print(h)
             time.sleep(5)
         else:
             raise
@@ -39,9 +46,9 @@ def retry_get(complete_api_url):
 
 def search_query_api(start, by, keyword):
     end = start + by - 1
-    search_query = 'search_query=all:{keyword}'.format(keyword=keyword)
+    search_query = 'search_query=all:"{keyword}"'.format(keyword=keyword)
     start_query = 'start={start}'.format(start=start)
-    max_results = 'max_results={end}'.format(end=end)
+    max_results = 'max_results={end}'.format(end=by)
     sorted_arg = 'sortBy=lastUpdatedDate&sortOrder=ascending'
     #
     complete_api_url = '{url}?{search}&{start}&{max}&{sort}'.format(url=URL,
@@ -77,6 +84,8 @@ def parsing_tree(start, tree, keyword):
         row['arxiv_id'] = entry.find(tree_key_fix('id')).text
         row['published'] = entry.find(tree_key_fix('published')).text
         row['title'] = entry.find(tree_key_fix('title')).text
+        #row['category'] = entry.find(tree_key_fix('arxiv:primary_category')).text
+        #row['journal'] = entry.find(tree_key_fix('arxiv:journal_ref')).text
         row['keyword'] = keyword
         for author in entry.findall(tree_key_fix('author')):
             author_name = author.find(tree_key_fix('name')).text
@@ -103,7 +112,7 @@ def parsing_tree(start, tree, keyword):
             row_df = pd.DataFrame([row], columns=SCHEMA)
             df = df.append([row_df])
     #return df
-    df.to_csv('data/arxiv_{}_authors.csv'.format(keyword), mode='a', index=False, header=False)
+    df.to_csv('data/arxiv_authors.csv', mode='a', index=False, header=False)
     return True
 
 
@@ -116,9 +125,9 @@ if __name__ == "__main__":
             print(exc)
 
     # Define keyword
-    symbols = keywords['Symbols']
+    symbols = keywords['Robotics']
+    create_empty_csv()
     # Create empty csv
     for keyword in symbols:
-        create_empty_csv(keyword)
-        batch_queries(keyword, max=1000000, by=1000)
+        batch_queries(keyword, max=100000, by=1000)
     #search_query_api(1, 10, keyword)
