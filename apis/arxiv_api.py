@@ -2,6 +2,7 @@ import time
 import pandas as pd
 import requests
 import yaml
+import pdb
 from xml.etree import ElementTree
 from joblib import Parallel, delayed
 
@@ -19,9 +20,6 @@ def batch_queries(keyword, max=10000, by=100):
     Parallel(n_jobs=7, verbose=51)(delayed(search_query_api)(i, by, keyword)
                                        for i in range(1, max+1, by))
 
-    #for i in range(1, max+1, by):
-    #    print(i, i + by - 1)
-    #    search_query_api(i, by, keyword)
 
 def retry_get(complete_api_url):
     r = None
@@ -58,6 +56,7 @@ def search_query_api(start, by, keyword):
                                                               sort=sorted_arg)
     # Call API
     print(complete_api_url)
+    pdb.set_trace()
     response = retry_get(complete_api_url)
     #response = requests.get(complete_api_url, stream=True)
 
@@ -118,6 +117,10 @@ def parsing_tree(start, tree, keyword):
 
 
 if __name__ == "__main__":
+    # Create empty csv
+    create_empty_csv()
+
+    # Open yaml with keywords
     with open("apis/keywords.yaml", 'r') as k:
         try:
             keywords = yaml.load(k)
@@ -126,8 +129,14 @@ if __name__ == "__main__":
 
     # Define keyword
     symbols = keywords['Robotics']
-    create_empty_csv()
-    # Create empty csv
     for keyword in symbols:
         batch_queries(keyword, max=100000, by=1000)
-    #search_query_api(1, 10, keyword)
+
+    symbols = keywords['Learning']
+    for keyword in symbols:
+        batch_queries(keyword, max=100000, by=1000)
+
+    symbols = keywords['Symbols']
+    for keyword in symbols:
+        batch_queries(keyword, max=100000, by=1000)
+
